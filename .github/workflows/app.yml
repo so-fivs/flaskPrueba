@@ -48,8 +48,8 @@ jobs:
               sudo fuser -k 5000/tcp &&
 
               # Ejecutar la aplicación Flask
-              flask --app=pruebaFlask run --host=0.0.0.0 --port=5000 &
+               gunicorn -b 0.0.0.0:5000 app:pruebFlask --daemon
 
               # Desactivar el entorno virtual
-              desactivate
+              
               '
