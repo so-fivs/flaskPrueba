@@ -24,22 +24,22 @@ jobs:
           SERVER_IP: ${{ secrets.SSH_HOST }}
           EC2_USER: ${{ secrets.USER_NAME }}
           APP_DIR: /home/ubuntu/proyecto_flask  
-          APP_FILE: aplicacion_flask.py
+          APP_FILE: pruebaFlask.py
           ENVIRONMENT: production
       
         run: |
           echo "$EC2_PRIVATE_KEY" > ec2_key && chmod 600 ec2_key
           ssh -o StrictHostKeyChecking=no -i ec2_key ${EC2_USER}@${SERVER_IP} '
               # Acceder al directorio del proyecto
-              cd $APP_DIR &&
+              cd $flaskPrueba &&
 
               # Activar el entorno virtual
-              source venv/bin/activate &&
+              source entornoPython/bin/activate &&
 
-              # Actualizar el código desde la rama dev
+              # Actualizar el código desde la rama master
               git fetch --all &&
-              git reset --hard origin/dev &&
-              git pull origin dev &&
+              git reset --hard origin/master &&
+              git pull origin master &&
 
               # Instalar dependencias necesarias
               pip install -r requirements.txt &&
