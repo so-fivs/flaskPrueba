@@ -23,7 +23,7 @@ jobs:
       # Paso 3: Instalar dependencias
       - name: Install dependencies
         run: |
-          cd flaskPrueba &&
+          cd back &&
           pip install -r requirements.txt
 
       # Paso 4: Crear la base de datos temporal para las pruebas
@@ -56,7 +56,7 @@ jobs:
         run: |
           echo "$EC2_PRIVATE_KEY" > ec2_key && chmod 600 ec2_key
           ssh -o StrictHostKeyChecking=no -i ec2_key ${EC2_USER}@${SERVER_IP} '
-              cd /home/ubuntu/flaskPrueba &&
+              cd /home/ubuntu/flaskPrueba/back &&
               git fetch --all &&
               git reset --hard origin/master &&
               git pull origin master &&
