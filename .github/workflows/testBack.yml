@@ -1,8 +1,8 @@
-name: DeployBackend
+name: Test and Deploy Backend
 
 on:
   push:
-    branches: [ "master" ]  # Cambiado a rama master
+    branches: [ "master" ]
 
 jobs:
   TestAndDeploy:
@@ -10,31 +10,43 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # Checkout the code from the master branch
+      # Paso 1: Checkout del código desde la rama master
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Setup Python environment
+      # Paso 2: Configuración del entorno Python
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
 
-      # Install dependencies
+      # Paso 3: Instalar dependencias
       - name: Install dependencies
         run: |
           cd paginaBigdataback &&
           pip install -r requirements.txt
-          
-      # Set PYTHONPATH and run unit tests
+
+      # Paso 4: Crear la base de datos temporal para las pruebas
+      - name: Setup Test Database
+        run: |
+          mysql -u root -e "CREATE DATABASE IF NOT EXISTS paginaParcialBigdata_test;" &&
+          mysql -u root paginaParcialBigdata_test < /path/to/schema.sql
+
+      # Paso 5: Ejecutar las pruebas unitarias
       - name: Run Unit Tests
         env:
-          PYTHONPATH: ${{ github.workspace }}/paginaBigdataback
+          DATABASE_URL: "mysql://root@localhost/paginaParcialBigdata_test"  # Conexión de la base de datos de prueba
         run: |
-          cd paginaBigdataback &&
-          pytest tests/test_usuario.py --disable-warnings
-          
-      # Despliegue del Backend si las pruebas unitarias pasan
+          paginaBigdataback &&
+          pytest tests/ --disable-warnings
+
+      # Paso 6: Eliminar la base de datos temporal después de las pruebas
+      - name: Teardown Test Database
+        if: always()
+        run: |
+          mysql -u root -e "DROP DATABASE IF EXISTS paginaParcialBigdata_test;"
+
+      # Paso 7: Desplegar en EC2 si las pruebas pasan
       - name: Deploy Backend to EC2 Instance
         if: success()  # Solo ejecutar si las pruebas pasan
         env:
@@ -46,11 +58,10 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i ec2_key ${EC2_USER}@${SERVER_IP} '
               cd /home/ubuntu/paginaBigdataback &&
               git fetch --all &&
-              git reset --hard origin/master &&  # Cambiado a la rama master
-              git pull origin master &&  # Cambiado a la rama master
-              source /home/ubuntu/entornoGunicorn/bin/activate &&  # Usar entorno entornoGunicorn
+              git reset --hard origin/master &&
+              git pull origin master &&
+              source /home/ubuntu/entornoGunicorn/bin/activate &&
               pip install -r requirements.txt &&
               fuser -k 5000/tcp || true &&
-              tmux kill-session -t mysession || true &&  # Terminar sesión existente si existe
-              tmux new-session -d -s mysession "gunicorn -b 0.0.0.0:5000 app:app > gunicorn.log 2>&1"
+              gunicorn -b 0.0.0.0:5000 app:app --daemon
           '
