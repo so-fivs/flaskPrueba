@@ -23,7 +23,7 @@ jobs:
       # Paso 3: Instalar dependencias
       - name: Install dependencies
         run: |
-          flaskPrueba &&
+          cd flaskPrueba &&
           pip install -r requirements.txt
 
       # Paso 4: Crear la base de datos temporal para las pruebas
@@ -37,7 +37,7 @@ jobs:
         env:
           DATABASE_URL: "mysql://root@localhost/paginaParcialBigdata_test"  # Conexión de la base de datos de prueba
         run: |
-          flaskPrueba &&
+          cd flaskPrueba &&
           pytest tests/ --disable-warnings
 
       # Paso 6: Eliminar la base de datos temporal después de las pruebas
