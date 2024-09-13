@@ -23,7 +23,7 @@ jobs:
       # Paso 3: Instalar dependencias
       - name: Install dependencies
         run: |
-          cd paginaBigdataback &&
+          flaskPrueba &&
           pip install -r requirements.txt
 
       # Paso 4: Crear la base de datos temporal para las pruebas
