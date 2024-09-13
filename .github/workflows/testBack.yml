@@ -23,7 +23,7 @@ jobs:
       # Paso 3: Instalar dependencias
       - name: Install dependencies
         run: |
-          flaskPrueba &&
+          cd flaskPrueba &&
           pip install -r requirements.txt
 
       # Paso 4: Crear la base de datos temporal para las pruebas
@@ -37,7 +37,7 @@ jobs:
         env:
           DATABASE_URL: "mysql://root@localhost/paginaParcialBigdata_test"  # Conexión de la base de datos de prueba
         run: |
-          paginaBigdataback &&
+          flaskPrueba &&
           pytest tests/ --disable-warnings
 
       # Paso 6: Eliminar la base de datos temporal después de las pruebas
@@ -56,7 +56,7 @@ jobs:
         run: |
           echo "$EC2_PRIVATE_KEY" > ec2_key && chmod 600 ec2_key
           ssh -o StrictHostKeyChecking=no -i ec2_key ${EC2_USER}@${SERVER_IP} '
-              cd /home/ubuntu/paginaBigdataback &&
+              cd /home/ubuntu/flaskPrueba &&
               git fetch --all &&
               git reset --hard origin/master &&
               git pull origin master &&
