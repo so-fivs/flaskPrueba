@@ -28,8 +28,8 @@ jobs:
           ENVIRONMENT: production
       
         run: |
-          echo "$EC2_PRIVATE_KEY" > ec2_key && chmod 600 ec2_key
-          ssh -o StrictHostKeyChecking=no -i ec2_key ${EC2_USER}@${SERVER_IP} '
+          echo "$SS_PRIVATE_KEY" > ec2_key && chmod 600 ec2_key
+          ssh -o StrictHostKeyChecking=no -i ec2_key ${USER_NAME}@${SSH_HOST} '
               # Acceder al directorio del proyecto
               cd flaskPrueba &&
 
