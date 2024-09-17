@@ -1,4 +1,4 @@
-name: TestAndDeployBackend
+name: Test and Deploy Backend
 
 on:
   push:
@@ -8,53 +8,45 @@ jobs:
   TestAndDeploy:
     name: Test and Deploy to EC2 Backend
     runs-on: ubuntu-latest
-
+    
     steps:
-      # Checkout the code from the Backend branch
+      # Paso 1: Checkout del código desde la rama Backend
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Setup Python environment
+      # Paso 2: Configuración del entorno Python
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
 
-      # Install dependencies
+      # Paso 3: Instalar dependencias
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
 
-      # Create a temporary database for testing
-      - name: Create Temporary Database
-        env:
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}
+      # Paso 4: Crear la base de datos temporal para las pruebas
+      - name: Setup Test Database
         run: |
-          mysql -h $DB_HOST -u $DB_USERNAME -p$DB_PASSWORD -e "CREATE DATABASE IF NOT EXISTS test_database;"
-          mysql -h $DB_HOST -u $DB_USERNAME -p$DB_PASSWORD test_database < Backend/tests/schema.sql
+          sudo apt-get update && sudo apt-get install -y mysql-server
+          sudo service mysql start
+          mysql -u root -e "CREATE DATABASE IF NOT EXISTS paginaParcialBigdata_test;" &&
+          mysql -u root paginaParcialBigdata_test < ./Backend/tests/schema.sql
 
-      # Set PYTHONPATH and run unit tests
+      # Paso 5: Ejecutar las pruebas unitarias desde el archivo .py
       - name: Run Unit Tests
-        env:
-          PYTHONPATH: ${{ github.workspace }}/Backend
         run: |
-          cd Backend &&
-          pytest tests/test_usuario.py --disable-warnings
+          pytest flaskPrueba/tests/test_backend.py --disable-warnings
 
-      # Drop temporary database after tests
-      - name: Drop Temporary Database
-        env:
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}
+      # Paso 6: Eliminar la base de datos temporal después de las pruebas
+      - name: Teardown Test Database
+        if: always()
         run: |
-          mysql -h $DB_HOST -u $DB_USERNAME -p$DB_PASSWORD -e "DROP DATABASE IF EXISTS test_database;"
+          mysql -u root -e "DROP DATABASE IF EXISTS paginaParcialBigdata_test;"
 
-      # Deploy Backend to EC2 Instance if tests pass
+      # Paso 7: Desplegar en EC2 si las pruebas pasan
       - name: Deploy Backend to EC2 Instance
-        if: success()  # Only deploy if tests pass
+        if: success()
         env:
           EC2_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.SSH_HOST_BACK }}
@@ -64,13 +56,10 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i ec2_key ${EC2_USER}@${SERVER_IP} '
               cd /home/ubuntu/flaskPrueba &&
               git fetch --all &&
-              git switch Backend &&
-              git reset --hard origin/Backend &&
-              git pull origin Backend &&
-              source /home/ubuntu/pruebaFlask/entornoBackend/bin/activate &&
-              cd /home/ubuntu/flaskPreuba &&
+              git reset --hard origin/master &&
+              git pull origin master &&
+              source /home/ubuntu/entornoGunicorn/bin/activate &&
               pip install -r requirements.txt &&
               fuser -k 5000/tcp || true &&
-              tmux kill-session -t mysession || true &&  # Terminate existing session if exists
-              tmux new-session -d -s mysession "gunicorn -w 4 -b 0.0.0.0:5000 Servidor:app > gunicorn.log 2>&1"
+              gunicorn -b 0.0.0.0:5000 app:app --daemon
           '
