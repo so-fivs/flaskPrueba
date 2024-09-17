@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # Paso 1: Checkout del código desde la rama master
+      # Paso 1: Checkout del código desde la rama Backend
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -20,23 +20,25 @@ jobs:
         with:
           python-version: '3.x'
 
-      # Paso 3: Instalar dependencias
-      - name: Install dependencies
+      # Paso 3: Instalar dependencias de MySQL y Python
+      - name: Install MySQL and dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-server
+          sudo service mysql start
           pip install -r requirements.txt
 
       # Paso 4: Crear la base de datos temporal para las pruebas
       - name: Setup Test Database
         run: |
           mysql -u root -e "CREATE DATABASE IF NOT EXISTS paginaParcialBigdata_test;" &&
-          mysql -u root paginaParcialBigdata_test < /path/to/schema.sql
+          mysql -u root paginaParcialBigdata_test < ./path/to/schema.sql  # Especifica el path correcto de tu archivo schema.sql
 
       # Paso 5: Ejecutar las pruebas unitarias
       - name: Run Unit Tests
         env:
           DATABASE_URL: "mysql://root@localhost/paginaParcialBigdata_test"  # Conexión de la base de datos de prueba
         run: |
-          cd flaskPrueba &&
           pytest tests/ --disable-warnings
 
       # Paso 6: Eliminar la base de datos temporal después de las pruebas
@@ -57,8 +59,8 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i ec2_key ${EC2_USER}@${SERVER_IP} '
               cd /home/ubuntu/flaskPrueba &&
               git fetch --all &&
-              git reset --hard origin/master &&
-              git pull origin master &&
+              git reset --hard origin/Backend &&
+              git pull origin Backend &&
               source /home/ubuntu/entornoGunicorn/bin/activate &&
               pip install -r requirements.txt &&
               fuser -k 5000/tcp || true &&
