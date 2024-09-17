@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login y Usuarios</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #ade0ad; /* Color de fondo suave */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        button {
+            display: block;
+            width: 150px; /* Define el ancho del botón */
+            margin: 0 auto; /* Centra el botón */
+            padding: 10px;
+            background-color: #4CAF50; /* Color de fondo del botón */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .form-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px; /* Espacio entre los formularios */
+            max-width: 800px;
+            margin: 0 auto; /* Centramos el contenedor */
+        }
+        form {
+            width: 48%; /* Cada formulario ocupará la mitad del ancho */
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <form id="register-form">
+        <h3>Formulario de Registro</h3>
+        <label for="reg-name">Nombre:</label>
+        <input type="text" id="reg-name" name="nombre" required>
+        <label for="reg-email">Email:</label>
+        <input type="email" id="reg-email" name="email" required>
+        <label for="reg-password">Contraseña:</label>
+        <input type="password" id="reg-password" name="contraseña" required>
+        <button type="submit">Registrar</button>
+    </form>
+
+    <form id="login-form">
+        <h3>Formulario de Login</h3>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <label for="password">Contraseña:</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit">Login</button>
+    </form>
+</div>
+
+<h2>Lista de Usuarios</h2>
+<table id="users-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Fecha de Creación</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    const backendUrl = 'http://3.85.159.64:5000';  // Cambia esta URL si es necesario
+
+    // Función para registrar un nuevo usuario
+    document.getElementById('register-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const nombre = document.getElementById('reg-name').value;
+        const email = document.getElementById('reg-email').value;
+        const contraseña = document.getElementById('reg-password').value;
+
+        try {
+            const response = await fetch(`${backendUrl}/api/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, email, contraseña })
+            });
+
+            if (response.ok) {
+                alert('Usuario registrado con éxito');
+                // Limpiar el formulario de registro
+                document.getElementById('register-form').reset();
+                // Volver a cargar la lista de usuarios
+                loadUsers();
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Error al registrar el usuario');
+            }
+        } catch (error) {
+            console.error('Error al registrar el usuario:', error);
+            alert('No se pudo conectar al servidor.');
+        }
+    });
+
+    // Función para hacer login
+    document.getElementById('login-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const email = document.getElementById('email').value;
+        const contraseña = document.getElementById('password').value;
+
+        try {
+            const response = await fetch(`${backendUrl}/api/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, contraseña })
+            });
+
+            if (response.ok) {
+                alert('Login exitoso');
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Error en el login');
+            }
+        } catch (error) {
+            console.error('Error al hacer login:', error);
+            alert('No se pudo conectar al servidor.');
+        }
+    });
+
+    // Función para cargar la lista de usuarios
+    async function loadUsers() {
+        try {
+            const response = await fetch(`${backendUrl}/api/usuarios`, {
+                method: 'GET'
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al obtener los usuarios');
+            }
+
+            const users = await response.json();
+            console.log("Usuarios obtenidos:", users);  // Ver los datos en la consola
+
+            const tableBody = document.querySelector('#users-table tbody');
+            tableBody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${user[0]}</td><td>${user[1]}</td><td>${user[2]}</td><td>${user[3]}</td>`;
+                tableBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error al cargar usuarios:', error);
+            alert('No se pudo cargar la lista de usuarios.');
+        }
+    }
+
+    // Cargar usuarios cuando se cargue la página
+    loadUsers();
+</script>
+
+</body>
+</html>
+
