@@ -23,20 +23,25 @@ jobs:
       # Paso 3: Instalar dependencias
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r Backend/requirements.txt
 
       # Paso 4: Crear la base de datos temporal para las pruebas
       - name: Setup Test Database
         run: |
-          sudo apt-get update && sudo apt-get install -y mysql-server
+          sudo apt-get update
+          sudo apt-get install -y mysql-server
           sudo service mysql start
-          mysql -u root -e "CREATE DATABASE IF NOT EXISTS paginaParcialBigdata_test;" &&
+          # Asegurar que MySQL está corriendo correctamente
+          sudo mysqladmin ping
+          # Crear la base de datos de prueba
+          mysql -u root -e "CREATE DATABASE IF NOT EXISTS paginaParcialBigdata_test;"
+          # Cargar el esquema (asegúrate de tener el archivo schema.sql en el repositorio)
           mysql -u root paginaParcialBigdata_test < ./Backend/tests/schema.sql
 
       # Paso 5: Ejecutar las pruebas unitarias desde el archivo .py
       - name: Run Unit Tests
         run: |
-          pytest flaskPrueba/tests/test_backend.py --disable-warnings
+          pytest Backend/tests/test_backend.py --disable-warnings
 
       # Paso 6: Eliminar la base de datos temporal después de las pruebas
       - name: Teardown Test Database
