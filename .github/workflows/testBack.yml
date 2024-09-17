@@ -20,26 +20,23 @@ jobs:
         with:
           python-version: '3.x'
 
-      # Paso 3: Instalar dependencias de MySQL y Python
-      - name: Install MySQL and dependencies
+      # Paso 3: Instalar dependencias
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y mysql-server
-          sudo service mysql start
           pip install -r requirements.txt
 
       # Paso 4: Crear la base de datos temporal para las pruebas
       - name: Setup Test Database
         run: |
+          sudo apt-get update && sudo apt-get install -y mysql-server
+          sudo service mysql start
           mysql -u root -e "CREATE DATABASE IF NOT EXISTS paginaParcialBigdata_test;" &&
-          mysql -u root paginaParcialBigdata_test < ./path/to/schema.sql  # Especifica el path correcto de tu archivo schema.sql
+          mysql -u root paginaParcialBigdata_test < ./Backend/tests/schema.sql
 
-      # Paso 5: Ejecutar las pruebas unitarias
+      # Paso 5: Ejecutar las pruebas unitarias desde el archivo .py
       - name: Run Unit Tests
-        env:
-          DATABASE_URL: "mysql://root@localhost/paginaParcialBigdata_test"  # Conexión de la base de datos de prueba
         run: |
-          pytest tests/ --disable-warnings
+          pytest flaskPrueba/tests/test_backend.py --disable-warnings
 
       # Paso 6: Eliminar la base de datos temporal después de las pruebas
       - name: Teardown Test Database
@@ -49,7 +46,7 @@ jobs:
 
       # Paso 7: Desplegar en EC2 si las pruebas pasan
       - name: Deploy Backend to EC2 Instance
-        if: success()  # Solo ejecutar si las pruebas pasan
+        if: success()
         env:
           EC2_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.SSH_HOST_BACK }}
@@ -59,8 +56,8 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i ec2_key ${EC2_USER}@${SERVER_IP} '
               cd /home/ubuntu/flaskPrueba &&
               git fetch --all &&
-              git reset --hard origin/Backend &&
-              git pull origin Backend &&
+              git reset --hard origin/master &&
+              git pull origin master &&
               source /home/ubuntu/entornoGunicorn/bin/activate &&
               pip install -r requirements.txt &&
               fuser -k 5000/tcp || true &&
